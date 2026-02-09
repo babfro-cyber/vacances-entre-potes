@@ -228,11 +228,12 @@ function createCharacter(name, index) {
   const velocity = (Math.random() * 0.4 + 0.6) * (Math.random() > 0.5 ? 1 : -1);
   const velocityY = (Math.random() * 0.4 + 0.6) * (Math.random() > 0.5 ? 1 : -1);
 
+  const { x, y } = getInitialPosition(index);
   const char = {
     el,
     name,
-    x: 120 + (index % 6) * 120,
-    y: 140 + (index % 3) * 80,
+    x,
+    y,
     vx: velocity,
     vy: velocityY,
     hovered: false,
@@ -291,6 +292,22 @@ function createCharacter(name, index) {
   });
 
   characters.push(char);
+}
+
+function getInitialPosition(index) {
+  const rect = world.getBoundingClientRect();
+  const padding = 20;
+  const usableWidth = Math.max(200, rect.width - padding * 2);
+  const usableHeight = Math.max(200, rect.height - 140);
+  const columns = Math.max(4, Math.floor(usableWidth / 90));
+  const rows = Math.ceil(names.length / columns);
+  const col = index % columns;
+  const row = Math.floor(index / columns);
+  const stepX = usableWidth / columns;
+  const stepY = usableHeight / Math.max(1, rows);
+  const x = padding + col * stepX;
+  const y = 90 + row * stepY;
+  return { x, y };
 }
 
 function updateSelection() {
