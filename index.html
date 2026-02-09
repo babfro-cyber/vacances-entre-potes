@@ -1,0 +1,144 @@
+<!doctype html>
+<html lang="fr">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Vacances entre potes</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <div class="sky">
+      <div class="cloud cloud-1"></div>
+      <div class="cloud cloud-2"></div>
+      <div class="cloud cloud-3"></div>
+      <div class="sun"></div>
+    </div>
+
+    <header class="hero">
+      <p class="hero-kicker">Bienvenue dans le niveau 1</p>
+      <h1>Vacances entre potes</h1>
+      <p class="hero-sub">
+        Survole un perso pour voir son nom. Clique pour le selectionner.
+      </p>
+      <div class="selection">
+        <span class="selection-label">Selection :</span>
+        <div id="selectionList" class="selection-list">Personne pour le moment</div>
+      </div>
+    </header>
+
+    <main>
+      <section class="level level-1 is-active">
+        <div class="world" id="world" aria-label="Terrain de jeu">
+        <div class="terrain base"></div>
+        <div class="terrain grass"></div>
+        <div class="terrain path"></div>
+        <div class="terrain water"></div>
+        <div class="terrain cliff"></div>
+        <div class="terrain hedge"></div>
+
+        <div class="prop tree tree-1">
+          <div class="tree-top"></div>
+          <div class="tree-trunk"></div>
+        </div>
+        <div class="prop tree tree-2">
+          <div class="tree-top"></div>
+          <div class="tree-trunk"></div>
+        </div>
+        <div class="prop tree tree-3">
+          <div class="tree-top"></div>
+          <div class="tree-trunk"></div>
+        </div>
+
+        <div class="prop house">
+          <div class="house-roof"></div>
+          <div class="house-body"></div>
+          <div class="house-door"></div>
+        </div>
+
+        <div class="prop table">
+          <div class="table-top"></div>
+          <div class="table-leg"></div>
+          <div class="table-leg"></div>
+        </div>
+
+        <div class="prop fireplace">
+          <div class="fire"></div>
+          <div class="logs"></div>
+        </div>
+
+        <div class="prop ball"></div>
+
+        <div id="characters" class="characters" aria-live="polite"></div>
+        </div>
+        <div class="level-cta" id="levelCta">
+          <span id="levelCtaText">Personnage choisi ?</span>
+          <button type="button" id="goLevel2">Aller au niveau 2</button>
+        </div>
+      </section>
+
+      <section class="level level-2" id="level2" aria-label="Niveau 2">
+        <div class="level-card">
+          <div class="level-header">
+            <span class="level-kicker">Niveau 2</span>
+            <h2>Discussion avec le druide</h2>
+            <p class="level-sub">
+              <span id="playerName">Ton perso</span> arrive au village et demande conseil.
+            </p>
+          </div>
+
+          <div class="chat-scene">
+            <div class="chat-panel chat-left">
+              <div class="avatar druid"></div>
+              <div class="chat-box" id="druidBox"></div>
+            </div>
+            <div class="chat-panel chat-right">
+              <div class="chat-box" id="playerBox"></div>
+              <div class="avatar player back">
+                <div class="avatar-head"></div>
+                <div class="avatar-body"></div>
+              </div>
+            </div>
+          </div>
+
+          <div class="chat-choices" id="chatChoices" aria-live="polite"></div>
+          <div class="chat-progress" id="chatProgress">0/4 questions</div>
+
+          <button id="backToLevel1" class="back-button" type="button">
+            Retour au niveau 1
+          </button>
+        </div>
+      </section>
+
+      <section class="level level-3" id="level3" aria-label="Niveau 3">
+        <div class="level-card">
+          <div class="level-header">
+            <span class="level-kicker">Niveau 3</span>
+            <h2>Apercu de ton trip</h2>
+            <p class="level-sub">
+              Voici une synthese visuelle basee sur tes choix.
+            </p>
+          </div>
+
+          <div class="recap-card" id="recapCard">
+            <div class="recap-title" id="recapTitle">Profil de vacancier</div>
+            <div class="recap-grid" id="recapGrid"></div>
+          </div>
+
+          <div class="recap-actions">
+            <button id="backToLevel2" type="button">Retour au niveau 2</button>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <footer class="footer">Niveau prototype. La suite arrive bientot.</footer>
+
+    <div id="transition" class="transition" aria-hidden="true">
+      <div class="transition-panel">
+        <p>Chargement du niveau 2...</p>
+      </div>
+    </div>
+
+    <script src="script.js"></script>
+  </body>
+</html>
