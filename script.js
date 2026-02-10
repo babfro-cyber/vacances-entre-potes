@@ -202,7 +202,7 @@ const CONFIRM_KEY = "vacancesConfirmed";
 const SUPABASE_URL = "https://nddxtxehlnnjfczvrxeq.supabase.co";
 const SUPABASE_ANON_KEY =
   "sb_publishable_RTi5Y-nwTE8GT-QPbUDrWQ_6Sk_DHHS";
-const supabase =
+const supabaseClient =
   window.supabase && SUPABASE_URL && SUPABASE_ANON_KEY
     ? window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY)
     : null;
@@ -262,6 +262,8 @@ function createCharacter(name, index) {
     selected: false,
     radius: 16,
   };
+  el.style.setProperty("--x", `${char.x}px`);
+  el.style.setProperty("--y", `${char.y}px`);
 
   el.addEventListener("mouseenter", () => {
     char.hovered = true;
@@ -814,8 +816,8 @@ async function saveResponses() {
       confirmed: false,
       answers: { ...answers },
     };
-    if (supabase) {
-      const { data, error } = await supabase
+    if (supabaseClient) {
+      const { data, error } = await supabaseClient
         .from("responses")
         .insert([
           {
@@ -846,8 +848,8 @@ async function saveResponses() {
 async function confirmLatestResponse() {
   try {
     const storedId = lastResponseId || localStorage.getItem("lastResponseId");
-    if (supabase && storedId) {
-      const { error } = await supabase
+    if (supabaseClient && storedId) {
+      const { error } = await supabaseClient
         .from("responses")
         .update({ confirmed: true })
         .eq("id", storedId);
@@ -874,8 +876,8 @@ async function refreshAdminBox() {
     return;
   }
   let entries = [];
-  if (supabase) {
-    const { data, error } = await supabase
+  if (supabaseClient) {
+    const { data, error } = await supabaseClient
       .from("responses")
       .select("*")
       .order("created_at", { ascending: false });
@@ -906,8 +908,8 @@ async function refreshAdminBox() {
     remove.type = "button";
     remove.textContent = "Supprimer";
     remove.addEventListener("click", () => {
-      if (supabase && entry.id) {
-        supabase
+      if (supabaseClient && entry.id) {
+        supabaseClient
           .from("responses")
           .delete()
           .eq("id", entry.id)
@@ -1048,8 +1050,8 @@ if (toggleAdmin) {
 
 if (copyResponses) {
   copyResponses.addEventListener("click", () => {
-    if (supabase) {
-      supabase
+    if (supabaseClient) {
+      supabaseClient
         .from("responses")
         .select("*")
         .order("created_at", { ascending: false })
@@ -1072,8 +1074,8 @@ if (resetPerson) {
     if (!target) {
       return;
     }
-    if (supabase) {
-      supabase
+    if (supabaseClient) {
+      supabaseClient
         .from("responses")
         .delete()
         .eq("name", target)
@@ -1088,4 +1090,6 @@ if (resetPerson) {
   });
 }
 
-init();
+window.addEventListener("load", () => {
+  init();
+});
