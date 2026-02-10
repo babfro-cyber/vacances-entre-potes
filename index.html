@@ -15,8 +15,19 @@
     </div>
 
     <header class="hero">
-      <p class="hero-kicker">Bienvenue dans le niveau 1</p>
-      <h1>Vacances entre potes</h1>
+      <div class="brand">
+        <div class="logo" aria-label="Logo Zephyr Gang">
+          <svg viewBox="0 0 120 60" role="img" aria-label="ZG">
+            <polygon points="0,0 52,0 24,52 0,52" />
+            <polygon points="68,0 120,0 120,52 92,52 92,32 108,32 108,20 68,20" />
+          </svg>
+        </div>
+        <div class="brand-text">
+          <p class="hero-kicker">Bienvenue dans le niveau 1</p>
+          <h1>Vacances entre potes</h1>
+          <p class="hero-tag">Zephyr Gang</p>
+        </div>
+      </div>
       <p class="hero-sub">
         Survole un perso pour voir son nom. Clique pour le selectionner.
       </p>
@@ -67,12 +78,15 @@
         </div>
 
         <div class="prop ball"></div>
+        <div class="prop zg-flag">
+          <span>Zephyr Gang</span>
+        </div>
 
         <div id="characters" class="characters" aria-live="polite"></div>
         </div>
         <div class="level-cta" id="levelCta">
-          <span id="levelCtaText">Personnage choisi ?</span>
-          <button type="button" id="goLevel2">Aller au niveau 2</button>
+          <span id="levelCtaText">Selectionne ton personnage</span>
+          <button type="button" id="goLevel2" disabled>Je suis ...</button>
         </div>
       </section>
 
@@ -126,6 +140,24 @@
 
           <div class="recap-actions">
             <button id="backToLevel2" type="button">Retour au niveau 2</button>
+            <button id="confirmRecap" type="button">Valider mon apercu</button>
+          </div>
+          <div class="admin-panel">
+            <button id="toggleAdmin" type="button">Zephyr Gang (Admin)</button>
+            <div id="adminBox" class="admin-box" aria-hidden="true">
+              <div class="admin-header">
+                <span>Reponses collectees</span>
+                <button id="copyResponses" type="button">Copier JSON</button>
+              </div>
+              <div class="admin-actions">
+                <label>
+                  Reset une personne
+                  <select id="resetPersonSelect"></select>
+                </label>
+                <button id="resetPerson" type="button">Supprimer ses reponses</button>
+              </div>
+              <div id="adminList" class="admin-list"></div>
+            </div>
           </div>
         </div>
       </section>
@@ -139,6 +171,7 @@
       </div>
     </div>
 
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="script.js"></script>
   </body>
 </html>

@@ -33,8 +33,15 @@ const goLevel2 = document.getElementById("goLevel2");
 const levelCtaText = document.getElementById("levelCtaText");
 const level3 = document.getElementById("level3");
 const backToLevel2 = document.getElementById("backToLevel2");
+const confirmRecap = document.getElementById("confirmRecap");
 const recapGrid = document.getElementById("recapGrid");
 const recapTitle = document.getElementById("recapTitle");
+const toggleAdmin = document.getElementById("toggleAdmin");
+const adminBox = document.getElementById("adminBox");
+const adminList = document.getElementById("adminList");
+const copyResponses = document.getElementById("copyResponses");
+const resetPersonSelect = document.getElementById("resetPersonSelect");
+const resetPerson = document.getElementById("resetPerson");
 
 const weekGroups = [
   {
@@ -192,6 +199,14 @@ let lastSelectedName = "";
 let lastPlayerReply = "";
 const STORAGE_KEY = "vacancesResponses";
 const CONFIRM_KEY = "vacancesConfirmed";
+const SUPABASE_URL = "https://nddxtxehlnnjfczvrxeq.supabase.co";
+const SUPABASE_ANON_KEY =
+  "sb_publishable_RTi5Y-nwTE8GT-QPbUDrWQ_6Sk_DHHS";
+const supabase =
+  window.supabase && SUPABASE_URL && SUPABASE_ANON_KEY
+    ? window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY)
+    : null;
+let lastResponseId = null;
 
 const sprites = ["sprite-1", "sprite-2", "sprite-3", "sprite-4"];
 const characters = [];
@@ -221,6 +236,13 @@ function createCharacter(name, index) {
   label.setAttribute("tabindex", "0");
 
   el.appendChild(shadow);
+  if (name === "Arnault Lorthios") {
+    const flag = document.createElement("div");
+    flag.className = "player-flag";
+    flag.innerHTML =
+      "<img alt=\"RC Lens\" src=\"https://upload.wikimedia.org/wikipedia/en/thumb/c/cc/RC_Lens_logo.svg/250px-RC_Lens_logo.svg.png\" />";
+    el.appendChild(flag);
+  }
   el.appendChild(sprite);
   el.appendChild(label);
   charactersLayer.appendChild(el);
@@ -228,11 +250,12 @@ function createCharacter(name, index) {
   const velocity = (Math.random() * 0.4 + 0.6) * (Math.random() > 0.5 ? 1 : -1);
   const velocityY = (Math.random() * 0.4 + 0.6) * (Math.random() > 0.5 ? 1 : -1);
 
+  const { x, y } = getInitialPosition(index);
   const char = {
     el,
     name,
-    x: 120 + (index % 6) * 120,
-    y: 140 + (index % 3) * 80,
+    x,
+    y,
     vx: velocity,
     vy: velocityY,
     hovered: false,
@@ -253,23 +276,30 @@ function createCharacter(name, index) {
   });
 
   el.addEventListener("click", () => {
-    char.selected = !char.selected;
-    el.classList.toggle("is-selected", char.selected);
-    if (char.selected) {
-      selected.add(char.name);
-      lastSelectedName = char.name;
-      el.classList.add("is-paused");
-    } else {
-      selected.delete(char.name);
-      if (!char.hovered) {
-        el.classList.remove("is-paused");
+    // Make selection exclusive for clarity
+    characters.forEach((c) => {
+      if (c !== char) {
+        c.selected = false;
+        c.el.classList.remove("is-selected", "is-paused");
       }
-    }
+    });
+    selected.clear();
+    char.selected = true;
+    selected.add(char.name);
+    lastSelectedName = char.name;
+    el.classList.add("is-selected", "is-paused");
     updateSelection();
   });
 
   label.addEventListener("click", (event) => {
     event.stopPropagation();
+    characters.forEach((c) => {
+      if (c !== char) {
+        c.selected = false;
+        c.el.classList.remove("is-selected", "is-paused");
+      }
+    });
+    selected.clear();
     selected.add(char.name);
     char.selected = true;
     lastSelectedName = char.name;
@@ -281,6 +311,13 @@ function createCharacter(name, index) {
   label.addEventListener("keydown", (event) => {
     if (event.key === "Enter" || event.key === " ") {
       event.preventDefault();
+      characters.forEach((c) => {
+        if (c !== char) {
+          c.selected = false;
+          c.el.classList.remove("is-selected", "is-paused");
+        }
+      });
+      selected.clear();
       selected.add(char.name);
       char.selected = true;
       lastSelectedName = char.name;
@@ -293,6 +330,22 @@ function createCharacter(name, index) {
   characters.push(char);
 }
 
+function getInitialPosition(index) {
+  const rect = world.getBoundingClientRect();
+  const padding = 20;
+  const usableWidth = Math.max(200, rect.width - padding * 2);
+  const usableHeight = Math.max(200, rect.height - 140);
+  const columns = Math.max(4, Math.floor(usableWidth / 90));
+  const rows = Math.ceil(names.length / columns);
+  const col = index % columns;
+  const row = Math.floor(index / columns);
+  const stepX = usableWidth / columns;
+  const stepY = usableHeight / Math.max(1, rows);
+  const x = padding + col * stepX;
+  const y = 90 + row * stepY;
+  return { x, y };
+}
+
 function updateSelection() {
   if (selected.size === 0) {
     selectionList.textContent = "Personne pour le moment";
@@ -300,7 +353,11 @@ function updateSelection() {
       levelCta.classList.remove("is-active");
     }
     if (levelCtaText) {
-      levelCtaText.textContent = "Personnage choisi ?";
+      levelCtaText.textContent = "Selectionne ton personnage";
+    }
+    if (goLevel2) {
+      goLevel2.disabled = true;
+      goLevel2.textContent = "Je suis ...";
     }
     return;
   }
@@ -322,6 +379,11 @@ function updateSelection() {
     if (focusName) {
       levelCtaText.textContent = `Pret, ${focusName} ?`;
     }
+  }
+  if (goLevel2) {
+    const focusName = lastSelectedName || Array.from(selected)[0];
+    goLevel2.disabled = !focusName;
+    goLevel2.textContent = focusName ? `Je suis ${focusName}` : "Je suis ...";
   }
 }
 
@@ -638,12 +700,13 @@ function formatAnswer(value) {
 function showStep() {
   updateProgress();
   if (currentStep >= conversationSteps.length) {
-    const saved = saveResponses();
-    renderBubbles(
-      saved
-        ? "Merci ! Tes reponses sont bien notees. Tu peux voir ton apercu."
-        : "Merci ! Tes reponses sont bien notees."
-    );
+    saveResponses().then((saved) => {
+      renderBubbles(
+        saved
+          ? "Merci ! Tes reponses sont bien notees. Tu peux voir ton apercu."
+          : "Merci ! Tes reponses sont bien notees."
+      );
+    });
     if (chatChoices) {
       chatChoices.innerHTML = "";
       const back = document.createElement("button");
@@ -659,6 +722,7 @@ function showStep() {
       const recap = document.createElement("button");
       recap.type = "button";
       recap.textContent = "Voir mon apercu";
+      recap.classList.add("is-primary");
       recap.addEventListener("click", () => {
         const weeksPossible = (answers.weeksPossible || []).join(", ") || "-";
         const companions = answers.companions
@@ -680,18 +744,8 @@ function showStep() {
         renderBubbles("Voici ton recap :", summary);
         goToLevel3();
       });
-      const validate = document.createElement("button");
-      validate.type = "button";
-      validate.textContent = "Valider mon apercu";
-      validate.addEventListener("click", () => {
-        const ok = confirmLatestResponse();
-        if (ok) {
-          goToLevel3();
-        }
-      });
       chatChoices.appendChild(back);
       chatChoices.appendChild(recap);
-      chatChoices.appendChild(validate);
     }
     updateProgress();
     return;
@@ -752,7 +806,7 @@ function goToLevel2From3() {
   }, 900);
 }
 
-function saveResponses() {
+async function saveResponses() {
   try {
     const payload = {
       name: lastSelectedName || playerName?.textContent || "Anonyme",
@@ -760,6 +814,25 @@ function saveResponses() {
       confirmed: false,
       answers: { ...answers },
     };
+    if (supabase) {
+      const { data, error } = await supabase
+        .from("responses")
+        .insert([
+          {
+            name: payload.name,
+            answers: payload.answers,
+            confirmed: payload.confirmed,
+            source: "github-pages",
+          },
+        ])
+        .select("id")
+        .single();
+      if (error) {
+        throw error;
+      }
+      lastResponseId = data?.id || null;
+      localStorage.setItem("lastResponseId", lastResponseId || "");
+    }
     const existingRaw = localStorage.getItem(STORAGE_KEY);
     const existing = existingRaw ? JSON.parse(existingRaw) : [];
     existing.push(payload);
@@ -770,8 +843,18 @@ function saveResponses() {
   }
 }
 
-function confirmLatestResponse() {
+async function confirmLatestResponse() {
   try {
+    const storedId = lastResponseId || localStorage.getItem("lastResponseId");
+    if (supabase && storedId) {
+      const { error } = await supabase
+        .from("responses")
+        .update({ confirmed: true })
+        .eq("id", storedId);
+      if (error) {
+        throw error;
+      }
+    }
     const existingRaw = localStorage.getItem(STORAGE_KEY);
     const existing = existingRaw ? JSON.parse(existingRaw) : [];
     if (!existing.length) {
@@ -783,6 +866,86 @@ function confirmLatestResponse() {
     return true;
   } catch {
     return false;
+  }
+}
+
+async function refreshAdminBox() {
+  if (!adminList) {
+    return;
+  }
+  let entries = [];
+  if (supabase) {
+    const { data, error } = await supabase
+      .from("responses")
+      .select("*")
+      .order("created_at", { ascending: false });
+    if (!error && data) {
+      entries = data.map((row) => ({
+        id: row.id,
+        name: row.name,
+        timestamp: row.created_at,
+        confirmed: row.confirmed,
+        answers: row.answers,
+      }));
+    }
+  } else {
+    const data = localStorage.getItem(STORAGE_KEY);
+    entries = data ? JSON.parse(data) : [];
+  }
+  adminList.innerHTML = "";
+
+  const names = new Set();
+  entries.forEach((entry, index) => {
+    names.add(entry.name || "Anonyme");
+    const row = document.createElement("div");
+    row.className = "admin-row";
+    const header = document.createElement("div");
+    header.className = "admin-row-header";
+    header.innerHTML = `<strong>${entry.name || "Anonyme"}</strong>`;
+    const remove = document.createElement("button");
+    remove.type = "button";
+    remove.textContent = "Supprimer";
+    remove.addEventListener("click", () => {
+      if (supabase && entry.id) {
+        supabase
+          .from("responses")
+          .delete()
+          .eq("id", entry.id)
+          .then(() => refreshAdminBox());
+      } else {
+        entries.splice(index, 1);
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(entries));
+        refreshAdminBox();
+      }
+    });
+    header.appendChild(remove);
+
+    const meta = document.createElement("div");
+    meta.className = "admin-row-meta";
+    meta.textContent = `${entry.timestamp || "-"} · ${entry.confirmed ? "Valide" : "Non valide"}`;
+
+    const answersText = document.createElement("div");
+    answersText.className = "admin-row-answers";
+    answersText.textContent = JSON.stringify(entry.answers || {}, null, 2);
+
+    row.appendChild(header);
+    row.appendChild(meta);
+    row.appendChild(answersText);
+    adminList.appendChild(row);
+  });
+
+  if (resetPersonSelect) {
+    resetPersonSelect.innerHTML = "";
+    const option = document.createElement("option");
+    option.value = "";
+    option.textContent = "Choisir une personne";
+    resetPersonSelect.appendChild(option);
+    Array.from(names).forEach((name) => {
+      const opt = document.createElement("option");
+      opt.value = name;
+      opt.textContent = name;
+      resetPersonSelect.appendChild(opt);
+    });
   }
 }
 
@@ -859,6 +1022,69 @@ if (goLevel2) {
 if (backToLevel2) {
   backToLevel2.addEventListener("click", () => {
     goToLevel2From3();
+  });
+}
+
+if (confirmRecap) {
+  confirmRecap.addEventListener("click", () => {
+    confirmLatestResponse().then((ok) => {
+      if (ok) {
+        renderBubbles("Merci ! Ton apercu est valide. On se tient au courant.");
+        refreshAdminBox();
+      }
+    });
+  });
+}
+
+if (toggleAdmin) {
+  toggleAdmin.addEventListener("click", () => {
+    if (!adminBox) {
+      return;
+    }
+    adminBox.classList.toggle("is-open");
+    refreshAdminBox();
+  });
+}
+
+if (copyResponses) {
+  copyResponses.addEventListener("click", () => {
+    if (supabase) {
+      supabase
+        .from("responses")
+        .select("*")
+        .order("created_at", { ascending: false })
+        .then(({ data }) => {
+          navigator.clipboard.writeText(JSON.stringify(data || [], null, 2)).catch(() => {});
+        });
+      return;
+    }
+    const data = localStorage.getItem(STORAGE_KEY) || "[]";
+    navigator.clipboard.writeText(data).catch(() => {});
+  });
+}
+
+if (resetPerson) {
+  resetPerson.addEventListener("click", () => {
+    if (!resetPersonSelect) {
+      return;
+    }
+    const target = resetPersonSelect.value;
+    if (!target) {
+      return;
+    }
+    if (supabase) {
+      supabase
+        .from("responses")
+        .delete()
+        .eq("name", target)
+        .then(() => refreshAdminBox());
+      return;
+    }
+    const data = localStorage.getItem(STORAGE_KEY);
+    const entries = data ? JSON.parse(data) : [];
+    const filtered = entries.filter((entry) => (entry.name || "Anonyme") !== target);
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(filtered));
+    refreshAdminBox();
   });
 }
 
