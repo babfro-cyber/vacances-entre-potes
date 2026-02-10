@@ -33,8 +33,15 @@ const goLevel2 = document.getElementById("goLevel2");
 const levelCtaText = document.getElementById("levelCtaText");
 const level3 = document.getElementById("level3");
 const backToLevel2 = document.getElementById("backToLevel2");
+const confirmRecap = document.getElementById("confirmRecap");
 const recapGrid = document.getElementById("recapGrid");
 const recapTitle = document.getElementById("recapTitle");
+const toggleAdmin = document.getElementById("toggleAdmin");
+const adminBox = document.getElementById("adminBox");
+const adminList = document.getElementById("adminList");
+const copyResponses = document.getElementById("copyResponses");
+const resetPersonSelect = document.getElementById("resetPersonSelect");
+const resetPerson = document.getElementById("resetPerson");
 
 const weekGroups = [
   {
@@ -221,6 +228,13 @@ function createCharacter(name, index) {
   label.setAttribute("tabindex", "0");
 
   el.appendChild(shadow);
+  if (name === "Arnault Lorthios") {
+    const flag = document.createElement("div");
+    flag.className = "player-flag";
+    flag.innerHTML =
+      "<img alt=\"RC Lens\" src=\"https://upload.wikimedia.org/wikipedia/en/thumb/c/cc/RC_Lens_logo.svg/250px-RC_Lens_logo.svg.png\" />";
+    el.appendChild(flag);
+  }
   el.appendChild(sprite);
   el.appendChild(label);
   charactersLayer.appendChild(el);
@@ -254,23 +268,30 @@ function createCharacter(name, index) {
   });
 
   el.addEventListener("click", () => {
-    char.selected = !char.selected;
-    el.classList.toggle("is-selected", char.selected);
-    if (char.selected) {
-      selected.add(char.name);
-      lastSelectedName = char.name;
-      el.classList.add("is-paused");
-    } else {
-      selected.delete(char.name);
-      if (!char.hovered) {
-        el.classList.remove("is-paused");
+    // Make selection exclusive for clarity
+    characters.forEach((c) => {
+      if (c !== char) {
+        c.selected = false;
+        c.el.classList.remove("is-selected", "is-paused");
       }
-    }
+    });
+    selected.clear();
+    char.selected = true;
+    selected.add(char.name);
+    lastSelectedName = char.name;
+    el.classList.add("is-selected", "is-paused");
     updateSelection();
   });
 
   label.addEventListener("click", (event) => {
     event.stopPropagation();
+    characters.forEach((c) => {
+      if (c !== char) {
+        c.selected = false;
+        c.el.classList.remove("is-selected", "is-paused");
+      }
+    });
+    selected.clear();
     selected.add(char.name);
     char.selected = true;
     lastSelectedName = char.name;
@@ -282,6 +303,13 @@ function createCharacter(name, index) {
   label.addEventListener("keydown", (event) => {
     if (event.key === "Enter" || event.key === " ") {
       event.preventDefault();
+      characters.forEach((c) => {
+        if (c !== char) {
+          c.selected = false;
+          c.el.classList.remove("is-selected", "is-paused");
+        }
+      });
+      selected.clear();
       selected.add(char.name);
       char.selected = true;
       lastSelectedName = char.name;
@@ -317,7 +345,11 @@ function updateSelection() {
       levelCta.classList.remove("is-active");
     }
     if (levelCtaText) {
-      levelCtaText.textContent = "Personnage choisi ?";
+      levelCtaText.textContent = "Selectionne ton personnage";
+    }
+    if (goLevel2) {
+      goLevel2.disabled = true;
+      goLevel2.textContent = "Je suis ...";
     }
     return;
   }
@@ -339,6 +371,11 @@ function updateSelection() {
     if (focusName) {
       levelCtaText.textContent = `Pret, ${focusName} ?`;
     }
+  }
+  if (goLevel2) {
+    const focusName = lastSelectedName || Array.from(selected)[0];
+    goLevel2.disabled = !focusName;
+    goLevel2.textContent = focusName ? `Je suis ${focusName}` : "Je suis ...";
   }
 }
 
@@ -697,18 +734,8 @@ function showStep() {
         renderBubbles("Voici ton recap :", summary);
         goToLevel3();
       });
-      const validate = document.createElement("button");
-      validate.type = "button";
-      validate.textContent = "Valider mon apercu";
-      validate.addEventListener("click", () => {
-        const ok = confirmLatestResponse();
-        if (ok) {
-          goToLevel3();
-        }
-      });
       chatChoices.appendChild(back);
       chatChoices.appendChild(recap);
-      chatChoices.appendChild(validate);
     }
     updateProgress();
     return;
@@ -803,6 +830,61 @@ function confirmLatestResponse() {
   }
 }
 
+function refreshAdminBox() {
+  if (!adminList) {
+    return;
+  }
+  const data = localStorage.getItem(STORAGE_KEY);
+  const entries = data ? JSON.parse(data) : [];
+  adminList.innerHTML = "";
+
+  const names = new Set();
+  entries.forEach((entry, index) => {
+    names.add(entry.name || "Anonyme");
+    const row = document.createElement("div");
+    row.className = "admin-row";
+    const header = document.createElement("div");
+    header.className = "admin-row-header";
+    header.innerHTML = `<strong>${entry.name || "Anonyme"}</strong>`;
+    const remove = document.createElement("button");
+    remove.type = "button";
+    remove.textContent = "Supprimer";
+    remove.addEventListener("click", () => {
+      entries.splice(index, 1);
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(entries));
+      refreshAdminBox();
+    });
+    header.appendChild(remove);
+
+    const meta = document.createElement("div");
+    meta.className = "admin-row-meta";
+    meta.textContent = `${entry.timestamp || "-"} · ${entry.confirmed ? "Valide" : "Non valide"}`;
+
+    const answersText = document.createElement("div");
+    answersText.className = "admin-row-answers";
+    answersText.textContent = JSON.stringify(entry.answers || {}, null, 2);
+
+    row.appendChild(header);
+    row.appendChild(meta);
+    row.appendChild(answersText);
+    adminList.appendChild(row);
+  });
+
+  if (resetPersonSelect) {
+    resetPersonSelect.innerHTML = "";
+    const option = document.createElement("option");
+    option.value = "";
+    option.textContent = "Choisir une personne";
+    resetPersonSelect.appendChild(option);
+    Array.from(names).forEach((name) => {
+      const opt = document.createElement("option");
+      opt.value = name;
+      opt.textContent = name;
+      resetPersonSelect.appendChild(opt);
+    });
+  }
+}
+
 function renderRecapCard() {
   if (!recapGrid) {
     return;
@@ -876,6 +958,50 @@ if (goLevel2) {
 if (backToLevel2) {
   backToLevel2.addEventListener("click", () => {
     goToLevel2From3();
+  });
+}
+
+if (confirmRecap) {
+  confirmRecap.addEventListener("click", () => {
+    const ok = confirmLatestResponse();
+    if (ok) {
+      renderBubbles("Merci ! Ton apercu est valide. On se tient au courant.");
+      refreshAdminBox();
+    }
+  });
+}
+
+if (toggleAdmin) {
+  toggleAdmin.addEventListener("click", () => {
+    if (!adminBox) {
+      return;
+    }
+    adminBox.classList.toggle("is-open");
+    refreshAdminBox();
+  });
+}
+
+if (copyResponses) {
+  copyResponses.addEventListener("click", () => {
+    const data = localStorage.getItem(STORAGE_KEY) || "[]";
+    navigator.clipboard.writeText(data).catch(() => {});
+  });
+}
+
+if (resetPerson) {
+  resetPerson.addEventListener("click", () => {
+    if (!resetPersonSelect) {
+      return;
+    }
+    const target = resetPersonSelect.value;
+    if (!target) {
+      return;
+    }
+    const data = localStorage.getItem(STORAGE_KEY);
+    const entries = data ? JSON.parse(data) : [];
+    const filtered = entries.filter((entry) => (entry.name || "Anonyme") !== target);
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(filtered));
+    refreshAdminBox();
   });
 }
 
